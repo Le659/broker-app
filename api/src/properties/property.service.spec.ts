@@ -1,122 +1,132 @@
+// broker-app/api/src/properties/property.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository, ObjectLiteral } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
 import { PropertyService } from './property.service';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { CACHE_MANAGER, NotFoundException } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
+import { Repository } from 'typeorm';
 import { Property } from './property.entity';
 
-type MockRepo<T extends ObjectLiteral = any> = Partial<
-  Record<keyof Repository<T>, jest.Mock>
->;
-
-const createMockRepo = <T extends ObjectLiteral = any>(): MockRepo<T> => ({
-  find: jest.fn(),
-  findOneBy: jest.fn(),
-  create: jest.fn(),
-  save: jest.fn(),
-  update: jest.fn(),
-  remove: jest.fn(),
-});
+type MockRepo = Partial<Record<keyof Repository<Property>, jest.Mock>>;
 
 describe('PropertyService', () => {
   let service: PropertyService;
-  let repo: MockRepo<Property>;
+  let mockRepo: MockRepo;
+  let mockCache: { del: jest.Mock };
+  let mockLogger: Partial<Record<keyof PinoLogger, jest.Mock>>;
 
   beforeEach(async () => {
+    // cria novos mocks antes de cada teste
+    mockRepo = {
+      find: jest.fn(),
+      findOneBy: jest.fn(),
+      create: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      remove: jest.fn(),
+    };
+
+    mockCache = { del: jest.fn() };
+
+    mockLogger = {
+      setContext: jest.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PropertyService,
         {
           provide: getRepositoryToken(Property),
-          useValue: createMockRepo<Property>(),
+          useValue: mockRepo,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: mockCache,
+        },
+        {
+          provide: PinoLogger,
+          useValue: mockLogger,
         },
       ],
     }).compile();
 
     service = module.get<PropertyService>(PropertyService);
-    repo = module.get<MockRepo<Property>>(getRepositoryToken(Property));
   });
 
   describe('findAll', () => {
     it('should return an array of properties', async () => {
-      const items = [{ id: 1 }] as Property[];
-      repo.find!.mockResolvedValue(items);
-      await expect(service.findAll()).resolves.toEqual(items);
-      expect(repo.find).toHaveBeenCalled();
+      const fakeList = [{ id: 1, address: 'A', price: 100 }] as Property[];
+      mockRepo.find!.mockResolvedValue(fakeList);
+      await expect(service.findAll()).resolves.toBe(fakeList);
+      expect(mockRepo.find).toHaveBeenCalled();
     });
   });
 
   describe('findOne', () => {
-    it('should return a property if found', async () => {
-      const item = { id: 1 } as Property;
-      repo.findOneBy!.mockResolvedValue(item);
-      await expect(service.findOne(1)).resolves.toEqual(item);
-      expect(repo.findOneBy).toHaveBeenCalledWith({ id: 1 });
+    it('should return a property when found', async () => {
+      const prop = { id: 2, address: 'B', price: 200 } as Property;
+      mockRepo.findOneBy!.mockResolvedValue(prop);
+      await expect(service.findOne(2)).resolves.toBe(prop);
+      expect(mockRepo.findOneBy).toHaveBeenCalledWith({ id: 2 });
     });
 
-    it('should throw NotFoundException if not found', async () => {
-      repo.findOneBy!.mockResolvedValue(null);
-      await expect(service.findOne(1)).rejects.toThrow(NotFoundException);
+    it('should throw NotFoundException when not found', async () => {
+      mockRepo.findOneBy!.mockResolvedValue(undefined);
+      await expect(service.findOne(999)).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
   describe('create', () => {
-    it('should create and save a property', async () => {
-      const dto = {
-        address: 'A',
-        area: 100,
-        bedrooms: 2,
-        bathrooms: 1,
-        parking: 1,
-      } as any;
-      const created = { id: 1, ...dto } as Property;
-      repo.create!.mockReturnValue(created);
-      repo.save!.mockResolvedValue(created);
-      await expect(service.create(dto)).resolves.toEqual(created);
-      expect(repo.create).toHaveBeenCalledWith(dto);
-      expect(repo.save).toHaveBeenCalledWith(created);
+    it('should create, save and return the new property', async () => {
+      const dto = { address: 'C', price: 300 };
+      const saved = { id: 3, ...dto } as Property;
+      mockRepo.create!.mockReturnValue(dto);
+      mockRepo.save!.mockResolvedValue(saved);
+
+      await expect(service.create(dto as any)).resolves.toEqual(saved);
+      expect(mockRepo.create).toHaveBeenCalledWith(dto);
+      expect(mockRepo.save).toHaveBeenCalledWith(dto);
+      expect(mockCache.del).toHaveBeenCalledWith('GET-/properties');
     });
   });
 
   describe('update', () => {
-    it('should update and return the property', async () => {
-      const existing = {
-        id: 1,
-        address: 'A',
-        area: 100,
-        bedrooms: 2,
-        bathrooms: 1,
-        parking: 1,
-        geom: null,
-        comparables: [],
-      } as Property;
-      const dto = { bedrooms: 3 } as any;
-      jest.spyOn(service, 'findOne').mockResolvedValue(existing);
-      repo.update!.mockResolvedValue(undefined as any);
-      await expect(service.update(1, dto)).resolves.toEqual(existing);
-      expect(repo.update).toHaveBeenCalledWith(1, dto);
+    it('should update and return the updated property', async () => {
+      const dto = { address: 'D New' };
+      const before = { id: 4, address: 'D Old', price: 400 } as Property;
+      const after = { id: 4, address: 'D New', price: 400 } as Property;
+
+      mockRepo.findOneBy!.mockResolvedValueOnce(before);
+      mockRepo.update!.mockResolvedValue({ affected: 1 } as any);
+      mockRepo.findOneBy!.mockResolvedValueOnce(after);
+
+      await expect(service.update(4, dto as any)).resolves.toEqual(after);
+      expect(mockCache.del).toHaveBeenCalledWith('GET-/properties');
     });
 
-    it('should throw NotFoundException when updating non-existing', async () => {
-      jest.spyOn(service, 'findOne').mockRejectedValue(new NotFoundException());
-      await expect(service.update(1, {} as any)).rejects.toThrow(
-        NotFoundException,
-      );
+    it('should throw NotFoundException when updating non-existent', async () => {
+      mockRepo.findOneBy!.mockResolvedValue(undefined);
+      await expect(service.update(999, {} as any)).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
   describe('remove', () => {
-    it('should remove the property', async () => {
-      const existing = { id: 1 } as Property;
-      jest.spyOn(service, 'findOne').mockResolvedValue(existing);
-      repo.remove!.mockResolvedValue(existing as any);
-      await expect(service.remove(1)).resolves.toBeUndefined();
-      expect(repo.remove).toHaveBeenCalledWith(existing);
+    it('should remove the property and invalidate cache', async () => {
+      const prop = { id: 5, address: 'E', price: 500 } as Property;
+      mockRepo.findOneBy!.mockResolvedValue(prop);
+
+      await expect(service.remove(5)).resolves.toBeUndefined();
+      expect(mockRepo.remove).toHaveBeenCalledWith(prop);
+      expect(mockCache.del).toHaveBeenCalledWith('GET-/properties');
     });
 
-    it('should throw NotFoundException when removing non-existing', async () => {
-      jest.spyOn(service, 'findOne').mockRejectedValue(new NotFoundException());
-      await expect(service.remove(1)).rejects.toThrow(NotFoundException);
+    it('should throw NotFoundException when removing non-existent', async () => {
+      mockRepo.findOneBy!.mockResolvedValue(undefined);
+      await expect(service.remove(999)).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });
