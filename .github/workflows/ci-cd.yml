@@ -27,7 +27,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'    # <–– força npm no Environment details
+          cache: 'npm'             # força npm no Environment details
+
+      - name: Disable Yarn engines check
+        run: echo 'ignore-engines true' >> .yarnrc.yml
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
