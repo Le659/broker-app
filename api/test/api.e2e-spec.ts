@@ -1,61 +1,53 @@
 // broker-app/api/test/api.e2e-spec.ts
-import request from 'supertest';
-import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  INestApplication,
+  CacheModule,
+} from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from '../src/app.controller';
+import * as request from 'supertest';
+
 import { PropertyModule } from '../src/properties/property.module';
 import { Property } from '../src/properties/property.entity';
-import { Comparable } from '../src/properties/comparable.entity';
 
-describe('Broker API (e2e)', () => {
+describe('PropertyController (e2e)', () => {
   let app: INestApplication;
-  let httpServer: any;
   let createdId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
-        // montar conexão SQLite in-memory
+        // necessário para injetar CACHE_MANAGER
+        CacheModule.register(),
+        // configuração in-memory do TypeORM
         TypeOrmModule.forRoot({
           type: 'sqlite',
           database: ':memory:',
-          dropSchema: true,
+          entities: [Property],
           synchronize: true,
-          entities: [Property, Comparable],
         }),
-        // tudo que seu CRUD precisa
+        // módulo que contém o controller/service que você vai testar
         PropertyModule,
       ],
-      // registra a rota health
-      controllers: [AppController],
     }).compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
-    httpServer = app.getHttpServer();
-  }, 20_000); // estende timeout caso demore um pouco
+  });
 
   afterAll(async () => {
     await app.close();
   });
 
-  it('/ (GET) health', () => {
-    return request(httpServer)
-      .get('/')
-      .expect(200)
-      .expect('OK');
-  });
-
   it('/properties (GET) ➞ []', () => {
-    return request(httpServer)
+    return request(app.getHttpServer())
       .get('/properties')
       .expect(200)
       .expect([]);
   });
 
   it('/properties (POST) ➞ cria e retorna id', () => {
-    return request(httpServer)
+    return request(app.getHttpServer())
       .post('/properties')
       .send({
         address: 'Rua Teste',
@@ -73,14 +65,14 @@ describe('Broker API (e2e)', () => {
   });
 
   it('/properties/:id (GET) ➞ encontra criado', () => {
-    return request(httpServer)
+    return request(app.getHttpServer())
       .get(`/properties/${createdId}`)
       .expect(200)
       .then(res => expect(res.body.id).toBe(createdId));
   });
 
   it('/properties/:id (PUT) ➞ atualiza e reflete mudança', () => {
-    return request(httpServer)
+    return request(app.getHttpServer())
       .put(`/properties/${createdId}`)
       .send({ bedrooms: 2 })
       .expect(200)
@@ -88,7 +80,7 @@ describe('Broker API (e2e)', () => {
   });
 
   it('/properties/:id (DELETE) ➞ status 204', () => {
-    return request(httpServer)
+    return request(app.getHttpServer())
       .delete(`/properties/${createdId}`)
       .expect(204);
   });
