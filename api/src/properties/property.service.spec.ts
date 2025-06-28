@@ -29,6 +29,7 @@ describe('PropertyService', () => {
       update: jest.fn(),
       remove: jest.fn(),
     };
+
     mockCache = { del: jest.fn() };
     mockLogger = {
       setContext: jest.fn(),
@@ -40,7 +41,7 @@ describe('PropertyService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [
-        // importa o CacheModule para o token CACHE_MANAGER ficar disponível
+        // importa o CacheModule para registrar o token CACHE_MANAGER
         CacheModule.register(),
       ],
       providers: [
@@ -50,16 +51,15 @@ describe('PropertyService', () => {
           useValue: mockRepo,
         },
         {
-          // aqui já sobrescrevemos o provider de CACHE_MANAGER
-          provide: CACHE_MANAGER,
-          useValue: mockCache,
-        },
-        {
           provide: PinoLogger,
           useValue: mockLogger,
         },
       ],
-    }).compile();
+    })
+      // sobrescreve o provider CACHE_MANAGER pelo seu mock
+      .overrideProvider(CACHE_MANAGER)
+      .useValue(mockCache)
+      .compile();
 
     service = module.get<PropertyService>(PropertyService);
   });
