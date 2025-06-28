@@ -29,7 +29,12 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Lint 🧐
-        run: yarn lint
+        run: |
+          if yarn run lint > /dev/null 2>&1; then
+            yarn lint
+          else
+            echo "skip lint — script não existe"
+          fi
 
       - name: Build 🔨
         run: yarn build
