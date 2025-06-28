@@ -88,3 +88,11 @@ jobs:
           tags: |
             yourdockerhubuser/broker-app-api:latest
             yourdockerhubuser/broker-app-api:${{ github.sha }}
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        with:
+          args: test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
