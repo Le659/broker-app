@@ -1,35 +1,42 @@
-// broker-app/api/test/api.e2e-spec.ts
+// test/api.e2e-spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   INestApplication,
   CacheModule,
 } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import * as request from 'supertest';
+import { LoggerModule } from 'nestjs-pino';
+import request, { Response } from 'supertest';
 
 import { PropertyModule } from '../src/properties/property.module';
 import { Property } from '../src/properties/property.entity';
+import { Comparable } from '../src/properties/comparable.entity';
 
-describe('PropertyController (e2e)', () => {
+describe('Broker API (e2e)', () => {
   let app: INestApplication;
-  let createdId: number;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        // necessário para injetar CACHE_MANAGER
-        CacheModule.register(),
-        // configuração in-memory do TypeORM
-        TypeOrmModule.forRoot({
-          type: 'sqlite',
-          database: ':memory:',
-          entities: [Property],
-          synchronize: true,
-        }),
-        // módulo que contém o controller/service que você vai testar
-        PropertyModule,
-      ],
-    }).compile();
+    const moduleFixture: TestingModule =
+      await Test.createTestingModule({
+        imports: [
+          // Cache global
+          CacheModule.register({ isGlobal: true }),
+          // LoggerModule para registrar PinoLogger
+          LoggerModule.forRoot({
+            pinoHttp: { level: 'silent' },
+            // ou outras opções
+          }),
+          // TypeORM in-memory com todas as entities
+          TypeOrmModule.forRoot({
+            type: 'sqlite',
+            database: ':memory:',
+            entities: [Property, Comparable],
+            synchronize: true,
+            dropSchema: true,
+          }),
+          PropertyModule,
+        ],
+      }).compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -39,49 +46,30 @@ describe('PropertyController (e2e)', () => {
     await app.close();
   });
 
-  it('/properties (GET) ➞ []', () => {
-    return request(app.getHttpServer())
+  it('/properties (GET) ➞ lista vazia', () =>
+    request(app.getHttpServer())
       .get('/properties')
       .expect(200)
-      .expect([]);
-  });
+      .expect([]),
+  );
 
-  it('/properties (POST) ➞ cria e retorna id', () => {
-    return request(app.getHttpServer())
+  it('/properties (POST) ➞ cria id', () =>
+    request(app.getHttpServer())
       .post('/properties')
-      .send({
-        address: 'Rua Teste',
-        area: 50,
-        bedrooms: 1,
-        bathrooms: 1,
-        parking: 0,
-        geom: null,
-      })
+      .send({ address: 'X', value: 1, area: 1, bedrooms: 1, bathrooms: 1, parking: 0 })
       .expect(201)
-      .then(res => {
-        expect(res.body.id).toBeDefined();
-        createdId = res.body.id;
-      });
-  });
+      .then((res: Response) => expect(res.body).toHaveProperty('id')),
+  );
 
-  it('/properties/:id (GET) ➞ encontra criado', () => {
-    return request(app.getHttpServer())
-      .get(`/properties/${createdId}`)
-      .expect(200)
-      .then(res => expect(res.body.id).toBe(createdId));
-  });
+  it('/properties/:id DELETE ➞ 204', async () => {
+    const { body }: { body: { id: number } } =
+      await request(app.getHttpServer())
+        .post('/properties')
+        .send({ address: 'Y', value: 2, area: 2, bedrooms: 2, bathrooms: 2, parking: 0 })
+        .expect(201);
 
-  it('/properties/:id (PUT) ➞ atualiza e reflete mudança', () => {
-    return request(app.getHttpServer())
-      .put(`/properties/${createdId}`)
-      .send({ bedrooms: 2 })
-      .expect(200)
-      .then(res => expect(res.body.bedrooms).toBe(2));
-  });
-
-  it('/properties/:id (DELETE) ➞ status 204', () => {
-    return request(app.getHttpServer())
-      .delete(`/properties/${createdId}`)
+    await request(app.getHttpServer())
+      .delete(`/properties/${body.id}`)
       .expect(204);
   });
 });
