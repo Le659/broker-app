@@ -5,7 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import * as redisStoreModule from 'cache-manager-redis-store';
-const redisStore = (redisStoreModule as any).default || (redisStoreModule as any);
+const redisStore =
+  (redisStoreModule as any).default || (redisStoreModule as any);
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -38,18 +39,14 @@ import { RedisCacheInterceptor } from './cache.interceptor';
       ttl: parseInt(process.env.CACHE_TTL!, 10),
     }),
 
-    TypeOrmModule.forRootAsync({
-      useFactory: () => ({
-        type: 'postgres' as const,
-        host: process.env.POSTGRES_HOST!,
-        port: parseInt(process.env.POSTGRES_PORT!, 10),
-        username: process.env.POSTGRES_USER!,
-        password: process.env.POSTGRES_PASSWORD!,
-        database: process.env.POSTGRES_DB!,
-        autoLoadEntities: true,
-        synchronize: true,
-      }),
+    // --- substituição do bloco do TypeOrmModule ---
+    TypeOrmModule.forRoot({
+      type: 'sqlite',
+      database: ':memory:',
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      synchronize: true,
     }),
+    // ----------------------------------------------
 
     PropertyModule,
   ],

@@ -20,9 +20,7 @@ describe('PropertyController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PropertyController],
-      providers: [
-        { provide: PropertyService, useValue: service },
-      ],
+      providers: [{ provide: PropertyService, useValue: service }],
     }).compile();
 
     controller = module.get<PropertyController>(PropertyController);

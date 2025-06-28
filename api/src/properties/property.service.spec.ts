@@ -22,7 +22,7 @@ const makeProp = (overrides: any = {}): Property =>
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
-  } as any);
+  }) as any;
 
 type MockRepo = Partial<Record<keyof Repository<Property>, jest.Mock>>;
 
@@ -84,7 +84,9 @@ describe('PropertyService', () => {
 
     it('should throw when not found', async () => {
       mockRepo.findOneBy!.mockResolvedValue(undefined);
-      await expect(service.findOne(999)).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.findOne(999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 
@@ -124,7 +126,9 @@ describe('PropertyService', () => {
 
     it('should throw when updating non-existent', async () => {
       mockRepo.findOneBy!.mockResolvedValue(undefined);
-      await expect(service.update(999, {} as any)).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.update(999, {} as any)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 
@@ -139,7 +143,9 @@ describe('PropertyService', () => {
 
     it('should throw when removing non-existent', async () => {
       mockRepo.findOneBy!.mockResolvedValue(undefined);
-      await expect(service.remove(999)).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.remove(999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 });

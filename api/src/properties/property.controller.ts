@@ -1,68 +1,49 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  ParseIntPipe,
-  HttpCode,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { ApiTags, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { PropertyService } from './property.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
-import { Property } from './property.entity';
 
 @ApiTags('properties')
 @Controller('properties')
 export class PropertyController {
-  constructor(private readonly service: PropertyService) {}
+  constructor(private readonly propertyService: PropertyService) {}
 
-  @ApiOperation({ summary: 'Listar todas as propriedades' })
-  @ApiResponse({ status: 200, type: [Property] })
   @Get()
-  findAll(): Promise<Property[]> {
-    return this.service.findAll();
+  @ApiResponse({ status: 200, description: 'Lista de imóveis' })
+  findAll() {
+    return this.propertyService.findAll();
   }
 
-  @ApiOperation({ summary: 'Obter uma propriedade por ID' })
-  @ApiResponse({ status: 200, type: Property })
-  @ApiResponse({ status: 404, description: 'Não encontrada' })
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Promise<Property> {
-    return this.service.findOne(id);
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, description: 'Imóvel encontrado' })
+  @ApiResponse({ status: 404, description: 'Imóvel não encontrado' })
+  findOne(@Param('id') id: number) {
+    return this.propertyService.findOne(Number(id));
   }
 
-  @ApiOperation({ summary: 'Criar nova propriedade' })
-  @ApiResponse({ status: 201, type: Property })
   @Post()
-  create(@Body() dto: CreatePropertyDto): Promise<Property> {
-    return this.service.create(dto);
+  @ApiBody({ type: CreatePropertyDto })
+  @ApiResponse({ status: 201, description: 'Imóvel criado' })
+  create(@Body() dto: CreatePropertyDto) {
+    return this.propertyService.create(dto);
   }
 
-  @ApiOperation({ summary: 'Atualizar propriedade por ID' })
-  @ApiResponse({ status: 200, type: Property })
-  @ApiResponse({ status: 404, description: 'Não encontrada' })
   @Put(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdatePropertyDto,
-  ): Promise<Property> {
-    return this.service.update(id, dto);
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ type: UpdatePropertyDto })
+  @ApiResponse({ status: 200, description: 'Imóvel atualizado' })
+  @ApiResponse({ status: 404, description: 'Imóvel não encontrado' })
+  update(@Param('id') id: number, @Body() dto: UpdatePropertyDto) {
+    return this.propertyService.update(Number(id), dto);
   }
 
-  @ApiOperation({ summary: 'Remover propriedade por ID' })
-  @ApiResponse({ status: 204, description: 'Removida com sucesso' })
-  @ApiResponse({ status: 404, description: 'Não encontrada' })
   @Delete(':id')
-  @HttpCode(204)
-  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.service.remove(id);
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 204, description: 'Imóvel removido' })
+  @ApiResponse({ status: 404, description: 'Imóvel não encontrado' })
+  remove(@Param('id') id: number) {
+    return this.propertyService.remove(Number(id));
   }
 }

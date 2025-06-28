@@ -7,7 +7,9 @@ export class Comparable {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @ManyToOne(() => Property, (prop) => prop.comparables, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Property, (prop) => prop.comparables, {
+    onDelete: 'CASCADE',
+  })
   property!: Property;
 
   @Column('numeric')

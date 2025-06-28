@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"          # pasta onde está o package.json
+    schedule:
+      interval: "daily"     # pode ser "weekly"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "some-library-you-don’t-want"
+        versions:
+          - ">=1.0.0 <2.0.0"

@@ -1,14 +1,9 @@
 // api/src/properties/property.service.ts
-import {
-  Injectable,
-  NotFoundException,
-  Inject,
-  CACHE_MANAGER,
-} from '@nestjs/common';
-import { PinoLogger } from 'nestjs-pino';
+import { Injectable, Inject, CACHE_MANAGER, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
+import { PinoLogger } from 'nestjs-pino';
 
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
@@ -17,8 +12,12 @@ import { Property } from './property.entity';
 @Injectable()
 export class PropertyService {
   constructor(
-    @InjectRepository(Property) private readonly repo: Repository<Property>,
-    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    @InjectRepository(Property)
+    private readonly repo: Repository<Property>,
+
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
+
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(PropertyService.name);
@@ -45,7 +44,7 @@ export class PropertyService {
     this.logger.debug({ dto }, 'Criando propriedade');
     const prop = this.repo.create(dto);
     const saved = await this.repo.save(prop);
-    await this.cache.del('GET-/properties');
+    await this.cacheManager.del('GET-/properties');
     this.logger.info({ id: saved.id }, 'Propriedade criada');
     return saved;
   }
@@ -55,7 +54,7 @@ export class PropertyService {
     await this.findOne(id);
     await this.repo.update(id, dto);
     const updated = await this.repo.findOneBy({ id });
-    await this.cache.del('GET-/properties');
+    await this.cacheManager.del('GET-/properties');
     this.logger.info({ id }, 'Propriedade atualizada');
     return updated!;
   }
@@ -64,7 +63,7 @@ export class PropertyService {
     this.logger.debug({ id }, 'Removendo propriedade');
     const prop = await this.findOne(id);
     await this.repo.remove(prop);
-    await this.cache.del('GET-/properties');
+    await this.cacheManager.del('GET-/properties');
     this.logger.info({ id }, 'Propriedade removida');
   }
 }

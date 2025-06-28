@@ -1,27 +1,19 @@
 import { NestFactory } from '@nestjs/core';
-import { LoggerModule, PinoLogger } from 'nestjs-pino';
-import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  app.useLogger(app.get(PinoLogger));
-
-  app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
-  );
+  const app = await NestFactory.create(AppModule);
 
   const config = new DocumentBuilder()
     .setTitle('Broker API')
-    .setDescription('CRUD de propriedades com NestJS, TypeORM, Redis e PostGIS')
+    .setDescription('API de gerenciamento de imóveis')
     .setVersion('1.0')
-    .addTag('properties')
     .build();
-
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api-docs', app, document);
 
-  await app.listen(process.env.PORT || 3000);
+  await app.listen(3000);
+  console.log(`🚀 Application running on: ${await app.getUrl()}`);
 }
 bootstrap();
