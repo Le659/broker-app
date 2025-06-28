@@ -40,6 +40,14 @@ jobs:
             echo "skip lint — script não existe"
           fi
 
+      - name: Check formatting
+        run: |
+          if yarn run format:check > /dev/null 2>&1; then
+            yarn format:check
+          else
+            echo "skip format:check — script não existe"
+          fi
+
       - name: Build 🔨
         run: yarn build
 
