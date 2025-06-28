@@ -1,10 +1,11 @@
 // broker-app/api/src/properties/property.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { PropertyService } from './property.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { CACHE_MANAGER, NotFoundException } from '@nestjs/common';
+import { CacheModule, CACHE_MANAGER, NotFoundException } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
+import { PropertyService } from './property.service';
 import { Property } from './property.entity';
 
 type MockRepo = Partial<Record<keyof Repository<Property>, jest.Mock>>;
@@ -16,7 +17,6 @@ describe('PropertyService', () => {
   let mockLogger: Partial<Record<keyof PinoLogger, jest.Mock>>;
 
   beforeEach(async () => {
-    // cria novos mocks antes de cada teste
     mockRepo = {
       find: jest.fn(),
       findOneBy: jest.fn(),
@@ -25,9 +25,7 @@ describe('PropertyService', () => {
       update: jest.fn(),
       remove: jest.fn(),
     };
-
     mockCache = { del: jest.fn() };
-
     mockLogger = {
       setContext: jest.fn(),
       debug: jest.fn(),
@@ -37,22 +35,27 @@ describe('PropertyService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
+      imports: [
+        // importa o CacheModule para registrar o token CACHE_MANAGER
+        CacheModule.register(),
+      ],
       providers: [
         PropertyService,
         {
           provide: getRepositoryToken(Property),
           useValue: mockRepo,
         },
-        {
-          provide: CACHE_MANAGER,
-          useValue: mockCache,
-        },
+        // não precisamos prover CACHE_MANAGER aqui, faremos override abaixo
         {
           provide: PinoLogger,
           useValue: mockLogger,
         },
       ],
-    }).compile();
+    })
+      // aqui sobrescrevemos o provider CACHE_MANAGER com nosso mock
+      .overrideProvider(CACHE_MANAGER)
+      .useValue(mockCache)
+      .compile();
 
     service = module.get<PropertyService>(PropertyService);
   });
@@ -61,6 +64,7 @@ describe('PropertyService', () => {
     it('should return an array of properties', async () => {
       const fakeList = [{ id: 1, address: 'A', price: 100 }] as Property[];
       mockRepo.find!.mockResolvedValue(fakeList);
+
       await expect(service.findAll()).resolves.toBe(fakeList);
       expect(mockRepo.find).toHaveBeenCalled();
     });
@@ -70,6 +74,7 @@ describe('PropertyService', () => {
     it('should return a property when found', async () => {
       const prop = { id: 2, address: 'B', price: 200 } as Property;
       mockRepo.findOneBy!.mockResolvedValue(prop);
+
       await expect(service.findOne(2)).resolves.toBe(prop);
       expect(mockRepo.findOneBy).toHaveBeenCalledWith({ id: 2 });
     });
