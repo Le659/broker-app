@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: yarn
+          cache: 'npm'    # <–– força npm no Environment details
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -84,10 +84,11 @@ jobs:
         with:
           context: ./api
           file: ./api/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            yourdockerhubuser/broker-app-api:latest
-            yourdockerhubuser/broker-app-api:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/broker-app-api:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/broker-app-api:${{ github.sha }}
 
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
