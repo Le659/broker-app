@@ -1,12 +1,8 @@
-// test/api.e2e-spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  CacheModule,
-} from '@nestjs/common';
+import { INestApplication, CacheModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
-import request, { Response } from 'supertest';
+import request from 'supertest';
 
 import { PropertyModule } from '../src/properties/property.module';
 import { Property } from '../src/properties/property.entity';
@@ -19,14 +15,8 @@ describe('Broker API (e2e)', () => {
     const moduleFixture: TestingModule =
       await Test.createTestingModule({
         imports: [
-          // Cache global
           CacheModule.register({ isGlobal: true }),
-          // LoggerModule para registrar PinoLogger
-          LoggerModule.forRoot({
-            pinoHttp: { level: 'silent' },
-            // ou outras opções
-          }),
-          // TypeORM in-memory com todas as entities
+          LoggerModule.forRoot({ pinoHttp: { level: 'silent' } }),
           TypeOrmModule.forRoot({
             type: 'sqlite',
             database: ':memory:',
@@ -56,17 +46,22 @@ describe('Broker API (e2e)', () => {
   it('/properties (POST) ➞ cria id', () =>
     request(app.getHttpServer())
       .post('/properties')
-      .send({ address: 'X', value: 1, area: 1, bedrooms: 1, bathrooms: 1, parking: 0 })
+      .send({
+        address: 'X', value: 1, area: 1, bedrooms: 1,
+        bathrooms: 1, parking: 0,
+      })
       .expect(201)
-      .then((res: Response) => expect(res.body).toHaveProperty('id')),
+      .then(res => expect(res.body).toHaveProperty('id')),
   );
 
   it('/properties/:id DELETE ➞ 204', async () => {
-    const { body }: { body: { id: number } } =
-      await request(app.getHttpServer())
-        .post('/properties')
-        .send({ address: 'Y', value: 2, area: 2, bedrooms: 2, bathrooms: 2, parking: 0 })
-        .expect(201);
+    const { body } = await request(app.getHttpServer())
+      .post('/properties')
+      .send({
+        address: 'Y', value: 2, area: 2, bedrooms: 2,
+        bathrooms: 2, parking: 0,
+      })
+      .expect(201);
 
     await request(app.getHttpServer())
       .delete(`/properties/${body.id}`)
