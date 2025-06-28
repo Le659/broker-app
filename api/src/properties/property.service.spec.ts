@@ -1,6 +1,10 @@
 // broker-app/api/src/properties/property.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { CacheModule, CACHE_MANAGER, NotFoundException } from '@nestjs/common';
+import {
+  CacheModule,
+  CACHE_MANAGER,
+  NotFoundException,
+} from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -36,7 +40,7 @@ describe('PropertyService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [
-        // importa o CacheModule para registrar o token CACHE_MANAGER
+        // importa o CacheModule para o token CACHE_MANAGER ficar disponível
         CacheModule.register(),
       ],
       providers: [
@@ -45,17 +49,17 @@ describe('PropertyService', () => {
           provide: getRepositoryToken(Property),
           useValue: mockRepo,
         },
-        // não precisamos prover CACHE_MANAGER aqui, faremos override abaixo
+        {
+          // aqui já sobrescrevemos o provider de CACHE_MANAGER
+          provide: CACHE_MANAGER,
+          useValue: mockCache,
+        },
         {
           provide: PinoLogger,
           useValue: mockLogger,
         },
       ],
-    })
-      // aqui sobrescrevemos o provider CACHE_MANAGER com nosso mock
-      .overrideProvider(CACHE_MANAGER)
-      .useValue(mockCache)
-      .compile();
+    }).compile();
 
     service = module.get<PropertyService>(PropertyService);
   });
