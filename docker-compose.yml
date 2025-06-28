@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgis/postgis:15-3.4-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: broker
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: brokerdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./api/.env
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=broker
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=
+
+volumes:
+  pgdata:
