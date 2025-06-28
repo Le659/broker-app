@@ -13,26 +13,20 @@ jobs:
   test:
     name: 🧪 Test & Build
     runs-on: ubuntu-latest
-
-    # TODOS os comandos `run:` deste job rodarão dentro de ./api
     defaults:
       run:
         working-directory: api
-
     strategy:
       matrix:
-        # Usa Node >= 20.11 para satisfazer @nestjs/cli@11
-        node-version: [20.x]
-
+        node-version: [20.x]        # Node ≥ 20.11
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'             # usa npm no “env details” para não quebrar JSON
+          cache: 'npm'             # evita Yarn “env details” no root
 
       - name: Silencia checagem de engines do Yarn
         run: echo 'ignore-engines true' >> .yarnrc.yml
@@ -62,10 +56,8 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up QEMU (multi-arch)
         uses: docker/setup-qemu-action@v2
