@@ -1,4 +1,6 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { 
+  Controller, Get, Post, Body, Param, Put, Delete, HttpCode, HttpStatus, ParseIntPipe 
+} from '@nestjs/common';
 import { ApiTags, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { PropertyService } from './property.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
@@ -19,8 +21,8 @@ export class PropertyController {
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 200, description: 'Imóvel encontrado' })
   @ApiResponse({ status: 404, description: 'Imóvel não encontrado' })
-  findOne(@Param('id') id: number) {
-    return this.propertyService.findOne(Number(id));
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.propertyService.findOne(id);
   }
 
   @Post()
@@ -35,15 +37,16 @@ export class PropertyController {
   @ApiBody({ type: UpdatePropertyDto })
   @ApiResponse({ status: 200, description: 'Imóvel atualizado' })
   @ApiResponse({ status: 404, description: 'Imóvel não encontrado' })
-  update(@Param('id') id: number, @Body() dto: UpdatePropertyDto) {
-    return this.propertyService.update(Number(id), dto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePropertyDto) {
+    return this.propertyService.update(id, dto);
   }
 
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Delete(':id')
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 204, description: 'Imóvel removido' })
   @ApiResponse({ status: 404, description: 'Imóvel não encontrado' })
-  remove(@Param('id') id: number) {
-    return this.propertyService.remove(Number(id));
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.propertyService.remove(id);
   }
 }
