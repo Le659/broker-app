@@ -47,12 +47,13 @@ describe('PropertyController', () => {
   describe('create', () => {
     it('creates a property', async () => {
       const dto: CreatePropertyDto = {
-        address: 'Rua Teste',
-        area: 50,
-        bedrooms: 1,
-        bathrooms: 1,
-        parking: 0,
+        address: 'Rua das Flores, 123',
+        area: 150,
+        bedrooms: 3,
+        bathrooms: 2,
+        parking: 1,
         geom: null,
+        value: 350000, // ← adicionado para satisfazer CreatePropertyDto
       };
       await expect(controller.create(dto)).resolves.toEqual({ id: 1 });
       expect(service.create).toHaveBeenCalledWith(dto);
